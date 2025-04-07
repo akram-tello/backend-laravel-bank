@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  rememberToken String?   @map("remember_token")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  account       Account?
+
+  @@map("users")
+}
+
+model Account {
+  id                   String        @id @default(uuid())
+  number               String        @unique
+  balance              Float        @default(0)
+  userId               String       @unique @map("user_id")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentTransactions     Transaction[] @relation("SentTransactions")
+  receivedTransactions Transaction[] @relation("ReceivedTransactions")
+
+  @@map("accounts")
+}
+
+model Transaction {
+  id            String    @id @default(uuid())
+  amount        Float
+  type          TransactionType
+  description   String?
+  recipientRef  String?   @map("recipient_ref")
+  fromAccountId String    @map("from_account_id")
+  toAccountId   String    @map("to_account_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  fromAccount   Account   @relation("SentTransactions", fields: [fromAccountId], references: [id], onDelete: Cascade)
+  toAccount     Account   @relation("ReceivedTransactions", fields: [toAccountId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+enum TransactionType {
+  DEPOSIT
+  TRANSFER
+}
